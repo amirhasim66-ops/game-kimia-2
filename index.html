@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Game Kimia Multiplayer - Aufbau & Tabel Periodik</title>
-  <!-- Firebase SDKs (v9 Compat Mode) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
@@ -15,21 +15,18 @@
     .title { font-size: 1.8em; color: #38bdf8; text-align: center; margin-bottom: 10px; font-weight: bold; }
     .subtitle { text-align: center; color: #94a3b8; margin-bottom: 25px; font-size: 0.95em; }
     
-    /* Mode Grid Dashboard */
     .mode-grid { display: grid; gap: 15px; grid-template-columns: 1fr; }
     .mode-card { background: #334155; border: 2px solid #475569; padding: 18px; border-radius: 12px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
     .mode-card:hover { border-color: #38bdf8; background: #475569; transform: translateY(-2px); }
     .mode-title { font-size: 1.1em; font-weight: bold; color: #f1f5f9; }
     .mode-desc { font-size: 0.85em; color: #cbd5e1; margin-top: 4px; }
     
-    /* Modal Input Nama */
     .modal-overlay { display: none; position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(15, 23, 42, 0.95); border-radius: 16px; justify-content: center; align-items: center; padding: 20px; z-index: 100; }
     .modal-overlay.active { display: flex; }
     .modal-box { background: #1e293b; border: 1px solid #475569; padding: 25px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; }
     .input-field { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 1em; margin: 15px 0; outline: none; }
     .input-field:focus { border-color: #38bdf8; }
     
-    /* Quiz UI */
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
     .badge { background: #0284c7; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em; }
     .difficulty { background: #d97706; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em; }
@@ -57,7 +54,7 @@
 <body>
 
   <div class="card">
-    <!-- SCREEN 1: DASHBOARD UTAMA -->
+    <!-- DASHBOARD UTAMA -->
     <div id="dashboard-screen" class="screen active">
       <div class="title">⚡ Game Kimia Online</div>
       <div class="subtitle">Adu Cepat Menjawab Soal Aufbau & Tabel Periodik! Siapa cepat dia dapat.</div>
@@ -100,7 +97,7 @@
       </div>
     </div>
 
-    <!-- MODAL: INPUT NAMA SISWA -->
+    <!-- MODAL INPUT NAMA -->
     <div id="name-modal" class="modal-overlay">
       <div class="modal-box">
         <h3 style="margin-top:0; color:#38bdf8;">Masukkan Nama Anda</h3>
@@ -111,7 +108,7 @@
       </div>
     </div>
 
-    <!-- SCREEN 2: GAMEPLAY QUIZ -->
+    <!-- SCREEN GAMEPLAY -->
     <div id="quiz-screen" class="screen">
       <div class="player-tag" id="player-display-tag">Pemain: -</div>
       <div class="header">
@@ -126,29 +123,18 @@
   </div>
 
   <script>
-    // ================= ==========================================
-    // 1. KONFIGURASI FIREBASE DATABASE
-    // Ganti nilai config di bawah dengan Firebase Config milik Anda!
     // ============================================================
-   const firebaseConfig = {
-      apiKey: "PASTE_API_KEY_ANDA_DI_SINI",
-      authDomain: "game-kimia-2.firebaseapp.com",
-      databaseURL: "https://game-kimia-2-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "game-kimia-2",
-      storageBucket: "game-kimia-2.appspot.com",
-      messagingSenderId: "PASTE_SENDER_ID_ANDA",
-      appId: "PASTE_APP_ID_ANDA"
-    };
+    // CUKUP GANTI LINK FIREBASE ANDA DI DALAM TANDA PETIK DI BAWAH INI:
+    // ============================================================
+    const databaseURL = "https://game-kimia-2-default-rtdb.asia-southeast1.firebasedatabase.app";
+    // ============================================================
 
-    // Inisialisasi Firebase
-    firebase.initializeApp(firebaseConfig);
+    // Inisialisasi otomatis ke Firebase
+    firebase.initializeApp({ databaseURL: databaseURL });
     const database = firebase.database();
 
-    // ============================================================
-    // 2. DATA 50 SOAL (5 Kategori @ 10 Soal Bertingkat)
-    // ============================================================
+    // DATA SOAL
     const questionDatabase = {
-      // MODUL 1: KONFIGURASI ELEKTRON AUFBAU (spdf)
       1: [
         { id: "1.1", diff: "Sangat Mudah", q: "Konfigurasi elektron subkulit Aufbau untuk atom Helium (Z = 2) adalah...", a: ["1s²", "1s¹ 2s¹", "2s²", "1s² 2s²"], ans: 0 },
         { id: "1.2", diff: "Mudah", q: "Konfigurasi elektron subkulit Aufbau untuk atom Carbon (Z = 6) adalah...", a: ["1s² 2s² 2p²", "1s² 2s⁴", "1s² 2s² 2p⁴", "1s² 2s³ 2p¹"], ans: 0 },
@@ -161,8 +147,6 @@
         { id: "1.9", diff: "Sangat Sulit", q: "Konfigurasi elektron Aufbau untuk kation Fe³⁺ (Z = 26) adalah...", a: ["[Ar] 3d⁵", "[Ar] 4s² 3d³", "[Ar] 4s¹ 3d⁴", "[Ar] 4s² 3d⁵"], ans: 0 },
         { id: "1.10", diff: "HOTS / Ekstrem", q: "Konfigurasi elektron Aufbau untuk ion Cu⁺ (Z = 29) adalah...", a: ["[Ar] 3d¹⁰", "[Ar] 4s¹ 3d⁹", "[Ar] 4s² 3d⁸", "[Ar] 3d⁹ 4s¹"], ans: 0 }
       ],
-
-      // MODUL 2: MENENTUKAN GOLONGAN
       2: [
         { id: "2.1", diff: "Sangat Mudah", q: "Unsur dengan konfigurasi terluar 2s¹ berada pada Golongan...", a: ["IA", "IIA", "IB", "VIIIA"], ans: 0 },
         { id: "2.2", diff: "Mudah", q: "Unsur Magnesium (Z = 12) memiliki konfigurasi terluar 3s². Terletak pada Golongan...", a: ["IIA", "IA", "IIB", "IVA"], ans: 0 },
@@ -175,8 +159,6 @@
         { id: "2.9", diff: "Sangat Sulit", q: "Suatu ion X²⁻ memiliki konfigurasi [Ne] 3s² 3p⁶. Unsur netral X berada pada Golongan...", a: ["VIA", "VIIA", "VIIIA", "IVB"], ans: 0 },
         { id: "2.10", diff: "HOTS / Ekstrem", q: "Unsur dengan konfigurasi [Xe] 6s² 4f¹⁴ 5d¹⁰ 6p² berada pada Golongan...", a: ["IVA", "IVB", "IIIA", "VIB"], ans: 0 }
       ],
-
-      // MODUL 3: MENENTUKAN PERIODE
       3: [
         { id: "3.1", diff: "Sangat Mudah", q: "Unsur Hidrogen (1s¹) berada pada Periode...", a: ["1", "2", "3", "4"], ans: 0 },
         { id: "3.2", diff: "Mudah", q: "Unsur dengan konfigurasi 1s² 2s² 2p⁴ terletak pada Periode...", a: ["2", "1", "3", "4"], ans: 0 },
@@ -189,8 +171,6 @@
         { id: "3.9", diff: "Sangat Sulit", q: "Ion Y³⁺ memiliki konfigurasi [Ar] 3d³. Maka unsur netral Y berada pada Periode...", a: ["4", "3", "5", "2"], ans: 0 },
         { id: "3.10", diff: "HOTS / Ekstrem", q: "Unsur Uranium (Z = 92) memiliki konfigurasi [Rn] 7s² 5f⁴ 6d¹. Terletak pada Periode...", a: ["7", "6", "5", "8"], ans: 0 }
       ],
-
-      // MODUL 4: MENENTUKAN NAMA UNSUR
       4: [
         { id: "4.1", diff: "Sangat Mudah", q: "Unsur dengan konfigurasi 1s¹ adalah...", a: ["Hidrogen (H)", "Helium (He)", "Litium (Li)", "Barium (Ba)"], ans: 0 },
         { id: "4.2", diff: "Mudah", q: "Unsur dengan konfigurasi [He] 2s² 2p⁴ (Z = 8) adalah...", a: ["Oksigen (O)", "Nitrogen (N)", "Fluorin (F)", "Karbon (C)"], ans: 0 },
@@ -203,8 +183,6 @@
         { id: "4.9", diff: "Sangat Sulit", q: "Kation M²⁺ dengan konfigurasi [Ar] 3d⁸ berasal dari unsur netral...", a: ["Nikel (Ni)", "Kobal (Co)", "Tembaga (Cu)", "Besi (Fe)"], ans: 0 },
         { id: "4.10", diff: "HOTS / Ekstrem", q: "Unsur dengan konfigurasi [Rn] 7s² 5f¹⁴ 6d¹⁰ 7p⁶ (Z = 118) dinamakan...", a: ["Oganesson (Og)", "Tennessine (Ts)", "Moscovium (Mc)", "Flerovium (Fl)"], ans: 0 }
       ],
-
-      // MODUL 5: MENENTUKAN NOMOR ATOM
       5: [
         { id: "5.1", diff: "Sangat Mudah", q: "Atom yang memiliki konfigurasi 1s² 2s¹ memiliki Nomor Atom...", a: ["3", "2", "4", "5"], ans: 0 },
         { id: "5.2", diff: "Mudah", q: "Nomor atom dari unsur dengan konfigurasi 1s² 2s² 2p⁵ adalah...", a: ["9", "7", "8", "10"], ans: 0 },
@@ -219,17 +197,11 @@
       ]
     };
 
-    // ============================================================
-    // 3. STATE & VARIABEL GAME
-    // ============================================================
     let selectedCat = null;
     let selectedQIdx = 0;
     let playerName = "";
     let questionRef = null;
 
-    // ============================================================
-    // 4. LOGIKA INTERAKSI TAMPILAN (UI)
-    // ============================================================
     function selectCategory(catId) {
       selectedCat = catId;
       document.getElementById('name-modal').classList.add('active');
@@ -249,9 +221,7 @@
       playerName = input;
       closeNameModal();
 
-      // Secara default mulai dari soal pertama (X.1) di kategori tsb
       selectedQIdx = 0;
-      
       document.getElementById('dashboard-screen').classList.remove('active');
       document.getElementById('quiz-screen').classList.add('active');
       document.getElementById('player-display-tag').innerText = `Pemain Aktif: ${playerName}`;
@@ -259,24 +229,18 @@
       loadQuestionAndListen(selectedCat, selectedQIdx);
     }
 
-    // ============================================================
-    // 5. LOGIKA REAL-TIME MULTIPLAYER (FIREBASE)
-    // ============================================================
     function loadQuestionAndListen(cat, idx) {
       const qData = questionDatabase[cat][idx];
       
-      // Matikan listener lama jika ada
       if (questionRef) {
         questionRef.off();
       }
 
-      // Update Tampilan Soal
       document.getElementById('question-id-badge').innerText = `Soal ${qData.id}`;
       document.getElementById('difficulty-badge').innerText = qData.diff;
       document.getElementById('question-text').innerText = qData.q;
       document.getElementById('feedback-box').style.display = 'none';
 
-      // Render Pilihan Jawaban
       const optsContainer = document.getElementById('options-container');
       optsContainer.innerHTML = '';
 
@@ -288,15 +252,12 @@
         optsContainer.appendChild(btn);
       });
 
-      // KEY MULTIPLAYER: Kunci path database Firebase (misal: "soal_locks/1_1")
       const questionKey = `${cat}_${idx + 1}`;
       questionRef = database.ref(`soal_locks/${questionKey}`);
 
-      // Pasang Listener Real-time
       questionRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data && data.isSolved) {
-          // Jika soal diselesaikan orang lain (bukan kita)
           if (data.solvedBy !== playerName) {
             alert(`⚠️ Soal ${qData.id} telah dijawab BENAR lebih cepat oleh "${data.solvedBy}"!\n\nAnda akan dikembalikan ke Dashboard Utama.`);
             returnToDashboard();
@@ -310,14 +271,12 @@
       const feedback = document.getElementById('feedback-box');
 
       if (chosenIdx === correctIdx) {
-        // --- JAWABAN BENAR ---
         buttons[chosenIdx].classList.add('correct');
         buttons.forEach(b => b.disabled = true);
 
         const qData = questionDatabase[selectedCat][selectedQIdx];
         const questionKey = `${selectedCat}_${selectedQIdx + 1}`;
 
-        // Kunci soal di Firebase
         database.ref(`soal_locks/${questionKey}`).set({
           isSolved: true,
           solvedBy: playerName,
@@ -325,7 +284,6 @@
         }).then(() => {
           alert(`🎉 SELAMAT! Anda berhasil menjawab Soal ${qData.id} dengan BENAR!`);
           
-          // Lanjut ke soal berikutnya di kategori yang sama jika ada
           if (selectedQIdx + 1 < questionDatabase[selectedCat].length) {
             selectedQIdx++;
             loadQuestionAndListen(selectedCat, selectedQIdx);
@@ -336,8 +294,6 @@
         });
 
       } else {
-        // --- JAWABAN SALAH ---
-        // Siswa masih bisa mencoba lagi / menjawab soal yang sama
         buttons[chosenIdx].classList.add('wrong');
         feedback.innerText = "❌ Jawaban Anda belum tepat. Silakan coba pilihan lainnya!";
         feedback.className = "feedback wrong";
