@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Kimia Multiplayer - Aufbau & Tabel Periodik</title>
+  <title>Game Kimia Multiplayer - Auto Skip & Permanent Lock</title>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -115,7 +115,7 @@
         <span class="badge" id="question-id-badge">Soal 1.1</span>
         <span class="difficulty" id="difficulty-badge">Mudah</span>
       </div>
-      <div class="question" id="question-text">Soal sedang dimuat...</div>
+      <div class="question" id="question-text">Memeriksa ketersediaan soal...</div>
       <div class="options" id="options-container"></div>
       <div class="feedback" id="feedback-box"></div>
       <button class="action-btn cancel-btn" onclick="returnToDashboard()" style="margin-top:20px;">⬅ Kembali ke Dashboard</button>
@@ -124,16 +124,15 @@
 
   <script>
     // ============================================================
-    // CUKUP GANTI LINK FIREBASE ANDA DI DALAM TANDA PETIK DI BAWAH INI:
+    // GANTI LINK FIREBASE DATABASE ANDA DI BAWAH INI:
     // ============================================================
-    const databaseURL = "https://game-kimia-2-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    const databaseURL = "https://game-kimia-2-default-rtdb.asia-southeast1.firebasedatabase.app"/;
     // ============================================================
 
-    // Inisialisasi otomatis ke Firebase
     firebase.initializeApp({ databaseURL: databaseURL });
     const database = firebase.database();
 
-    // DATA SOAL
+    // DATABASE SOAL
     const questionDatabase = {
       1: [
         { id: "1.1", diff: "Sangat Mudah", q: "Konfigurasi elektron subkulit Aufbau untuk atom Helium (Z = 2) adalah...", a: ["1s²", "1s¹ 2s¹", "2s²", "1s² 2s²"], ans: 0 },
@@ -221,12 +220,34 @@
       playerName = input;
       closeNameModal();
 
-      selectedQIdx = 0;
       document.getElementById('dashboard-screen').classList.remove('active');
       document.getElementById('quiz-screen').classList.add('active');
       document.getElementById('player-display-tag').innerText = `Pemain Aktif: ${playerName}`;
 
-      loadQuestionAndListen(selectedCat, selectedQIdx);
+      // CARI SOAL PERTAMA YANG BELUM TERJAWAB DARI FIREBASE
+      findFirstUnsolvedQuestion(selectedCat, 0);
+    }
+
+    // FUNGSI UNTUK MELOMPATI SOAL YANG SUDAH SELESAI
+    function findFirstUnsolvedQuestion(cat, idx) {
+      if (idx >= questionDatabase[cat].length) {
+        alert("🎉 Semua soal pada kategori ini sudah berhasil dijawab oleh para siswa!");
+        returnToDashboard();
+        return;
+      }
+
+      const questionKey = `${cat}_${idx + 1}`;
+      database.ref(`soal_locks/${questionKey}`).once('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.isSolved) {
+          // Jika soal sudah terjawab, cari soal berikutnya secara otomatis
+          findFirstUnsolvedQuestion(cat, idx + 1);
+        } else {
+          // Ketemu soal yang belum terjawab
+          selectedQIdx = idx;
+          loadQuestionAndListen(cat, selectedQIdx);
+        }
+      });
     }
 
     function loadQuestionAndListen(cat, idx) {
@@ -255,13 +276,12 @@
       const questionKey = `${cat}_${idx + 1}`;
       questionRef = database.ref(`soal_locks/${questionKey}`);
 
+      // Realtime listener jika ada orang lain yang menjawab saat pengguna sedang melihat soal
       questionRef.on('value', (snapshot) => {
         const data = snapshot.val();
-        if (data && data.isSolved) {
-          if (data.solvedBy !== playerName) {
-            alert(`⚠️ Soal ${qData.id} telah dijawab BENAR lebih cepat oleh "${data.solvedBy}"!\n\nAnda akan dikembalikan ke Dashboard Utama.`);
-            returnToDashboard();
-          }
+        if (data && data.isSolved && data.solvedBy !== playerName) {
+          alert(`⚠️ Soal ${qData.id} baru saja dijawab BENAR oleh "${data.solvedBy}"!\n\nSistem akan mengalihkan Anda ke soal berikutnya.`);
+          findFirstUnsolvedQuestion(selectedCat, selectedQIdx + 1);
         }
       });
     }
@@ -277,20 +297,15 @@
         const qData = questionDatabase[selectedCat][selectedQIdx];
         const questionKey = `${selectedCat}_${selectedQIdx + 1}`;
 
+        // SIMPAN PERMANEN BAHWA SOAL TELAH SELESAI
         database.ref(`soal_locks/${questionKey}`).set({
           isSolved: true,
           solvedBy: playerName,
           timestamp: firebase.database.ServerValue.TIMESTAMP
         }).then(() => {
           alert(`🎉 SELAMAT! Anda berhasil menjawab Soal ${qData.id} dengan BENAR!`);
-          
-          if (selectedQIdx + 1 < questionDatabase[selectedCat].length) {
-            selectedQIdx++;
-            loadQuestionAndListen(selectedCat, selectedQIdx);
-          } else {
-            alert("🏆 Luar biasa! Anda telah menyelesaikan seluruh soal di kategori ini!");
-            returnToDashboard();
-          }
+          // Lanjut cari soal berikutnya yang belum terjawab
+          findFirstUnsolvedQuestion(selectedCat, selectedQIdx + 1);
         });
 
       } else {
