@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Kimia Multiplayer - Aufbau & Tabel Periodik</title>
+  <!-- Firebase SDKs (v9 Compat Mode) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+    .card { background: #1e293b; border-radius: 16px; padding: 30px; width: 100%; max-width: 700px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; position: relative; }
+    .title { font-size: 1.8em; color: #38bdf8; text-align: center; margin-bottom: 10px; font-weight: bold; }
+    .subtitle { text-align: center; color: #94a3b8; margin-bottom: 25px; font-size: 0.95em; }
+    
+    /* Mode Grid Dashboard */
+    .mode-grid { display: grid; gap: 15px; grid-template-columns: 1fr; }
+    .mode-card { background: #334155; border: 2px solid #475569; padding: 18px; border-radius: 12px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+    .mode-card:hover { border-color: #38bdf8; background: #475569; transform: translateY(-2px); }
+    .mode-title { font-size: 1.1em; font-weight: bold; color: #f1f5f9; }
+    .mode-desc { font-size: 0.85em; color: #cbd5e1; margin-top: 4px; }
+    
+    /* Modal Input Nama */
+    .modal-overlay { display: none; position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(15, 23, 42, 0.95); border-radius: 16px; justify-content: center; align-items: center; padding: 20px; z-index: 100; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: #1e293b; border: 1px solid #475569; padding: 25px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; }
+    .input-field { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 1em; margin: 15px 0; outline: none; }
+    .input-field:focus { border-color: #38bdf8; }
+    
+    /* Quiz UI */
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
+    .badge { background: #0284c7; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em; }
+    .difficulty { background: #d97706; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em; }
+    .player-tag { font-size: 0.9em; color: #38bdf8; margin-bottom: 10px; font-weight: 600; }
+    .question { font-size: 1.2em; font-weight: 600; margin-bottom: 20px; line-height: 1.5; color: #f1f5f9; }
+    
+    .options { display: grid; gap: 12px; }
+    .btn { background: #334155; border: 2px solid #475569; color: #f8fafc; padding: 14px 18px; border-radius: 10px; font-size: 0.95em; text-align: left; cursor: pointer; transition: all 0.2s; }
+    .btn:hover:not(:disabled) { background: #475569; border-color: #38bdf8; }
+    .btn.correct { background: #15803d !important; border-color: #22c55e !important; }
+    .btn.wrong { background: #b91c1c !important; border-color: #ef4444 !important; }
+    
+    .feedback { margin-top: 15px; font-size: 0.95em; padding: 12px; border-radius: 8px; display: none; font-weight: 500; }
+    .feedback.wrong { background: #991b1b; color: #fecaca; }
+    
+    .action-btn { margin-top: 15px; width: 100%; background: #0284c7; border: none; color: white; padding: 14px; border-radius: 10px; font-size: 1em; font-weight: bold; cursor: pointer; }
+    .action-btn:hover { background: #0369a1; }
+    .cancel-btn { background: #475569; margin-top: 8px; }
+    .cancel-btn:hover { background: #334155; }
+    
+    .screen { display: none; }
+    .screen.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <!-- SCREEN 1: DASHBOARD UTAMA -->
+    <div id="dashboard-screen" class="screen active">
+      <div class="title">⚡ Game Kimia Online</div>
+      <div class="subtitle">Adu Cepat Menjawab Soal Aufbau & Tabel Periodik! Siapa cepat dia dapat.</div>
+      <div class="mode-grid">
+        <div class="mode-card" onclick="selectCategory(1)">
+          <div>
+            <div class="mode-title">1. Konfigurasi Elektron (Aufbau spdf)</div>
+            <div class="mode-desc">Soal 1.1 - 1.10 (Tingkat Kesulitan 1 - 10)</div>
+          </div>
+          <span class="badge">10 Soal</span>
+        </div>
+        <div class="mode-card" onclick="selectCategory(2)">
+          <div>
+            <div class="mode-title">2. Menentukan Golongan</div>
+            <div class="mode-desc">Soal 2.1 - 2.10 (Tingkat Kesulitan 1 - 10)</div>
+          </div>
+          <span class="badge">10 Soal</span>
+        </div>
+        <div class="mode-card" onclick="selectCategory(3)">
+          <div>
+            <div class="mode-title">3. Menentukan Periode</div>
+            <div class="mode-desc">Soal 3.1 - 3.10 (Tingkat Kesulitan 1 - 10)</div>
+          </div>
+          <span class="badge">10 Soal</span>
+        </div>
+        <div class="mode-card" onclick="selectCategory(4)">
+          <div>
+            <div class="mode-title">4. Menentukan Nama Unsur</div>
+            <div class="mode-desc">Soal 4.1 - 4.10 (Tingkat Kesulitan 1 - 10)</div>
+          </div>
+          <span class="badge">10 Soal</span>
+        </div>
+        <div class="mode-card" onclick="selectCategory(5)">
+          <div>
+            <div class="mode-title">5. Menentukan Nomor Atom</div>
+            <div class="mode-desc">Soal 5.1 - 5.10 (Tingkat Kesulitan 1 - 10)</div>
+          </div>
+          <span class="badge">10 Soal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: INPUT NAMA SISWA -->
+    <div id="name-modal" class="modal-overlay">
+      <div class="modal-box">
+        <h3 style="margin-top:0; color:#38bdf8;">Masukkan Nama Anda</h3>
+        <p style="font-size:0.85em; color:#94a3b8;">Nama ini akan tercatat jika Anda berhasil menjawab cepat!</p>
+        <input type="text" id="player-name-input" class="input-field" placeholder="Nama Lengkap Siswa..." autofocus />
+        <button class="action-btn" onclick="confirmStartQuiz()">Mulai Menjawab</button>
+        <button class="action-btn cancel-btn" onclick="closeNameModal()">Batal</button>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: GAMEPLAY QUIZ -->
+    <div id="quiz-screen" class="screen">
+      <div class="player-tag" id="player-display-tag">Pemain: -</div>
+      <div class="header">
+        <span class="badge" id="question-id-badge">Soal 1.1</span>
+        <span class="difficulty" id="difficulty-badge">Mudah</span>
+      </div>
+      <div class="question" id="question-text">Soal sedang dimuat...</div>
+      <div class="options" id="options-container"></div>
+      <div class="feedback" id="feedback-box"></div>
+      <button class="action-btn cancel-btn" onclick="returnToDashboard()" style="margin-top:20px;">⬅ Kembali ke Dashboard</button>
+    </div>
+  </div>
+
+  <script>
+    // ================= ==========================================
+    // 1. KONFIGURASI FIREBASE DATABASE
+    // Ganti nilai config di bawah dengan Firebase Config milik Anda!
+    // ============================================================
+    const firebaseConfig = {https://game-kimia-2-default-rtdb.asia-southeast1.firebasedatabase.app/}
+      apiKey: "AIzaSyYOUR_API_KEY_HERE",
+      authDomain: "your-project-id.firebaseapp.com",
+      databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project-id.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abcdef123456"
+    };
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // ============================================================
+    // 2. DATA 50 SOAL (5 Kategori @ 10 Soal Bertingkat)
+    // ============================================================
+    const questionDatabase = {
+      // MODUL 1: KONFIGURASI ELEKTRON AUFBAU (spdf)
+      1: [
+        { id: "1.1", diff: "Sangat Mudah", q: "Konfigurasi elektron subkulit Aufbau untuk atom Helium (Z = 2) adalah...", a: ["1s²", "1s¹ 2s¹", "2s²", "1s² 2s²"], ans: 0 },
+        { id: "1.2", diff: "Mudah", q: "Konfigurasi elektron subkulit Aufbau untuk atom Carbon (Z = 6) adalah...", a: ["1s² 2s² 2p²", "1s² 2s⁴", "1s² 2s² 2p⁴", "1s² 2s³ 2p¹"], ans: 0 },
+        { id: "1.3", diff: "Mudah", q: "Konfigurasi elektron subkulit untuk Natrium (Z = 11) adalah...", a: ["1s² 2s² 2p⁶ 3s¹", "1s² 2s² 2p⁶ 3p¹", "1s² 2s² 2p⁵ 3s²", "1s² 2s² 2p⁶"], ans: 0 },
+        { id: "1.4", diff: "Sedang", q: "Konfigurasi elektron subkulit untuk atom Sulfur (Z = 16) adalah...", a: ["1s² 2s² 2p⁶ 3s² 3p⁴", "1s² 2s² 2p⁶ 3s² 3p⁶", "1s² 2s² 2p⁶ 3s¹ 3p⁵", "[Ar] 3s² 3p⁴"], ans: 0 },
+        { id: "1.5", diff: "Sedang", q: "Konfigurasi elektron Aufbau untuk unsur Potassium/Kalium (Z = 19) adalah...", a: ["[Ne] 3s² 3p⁶ 4s¹", "[Ne] 3s² 3p⁵ 4s²", "[Ne] 3s² 3p⁶ 3d¹", "[Ne] 4s¹"], ans: 0 },
+        { id: "1.6", diff: "Cukup Sulit", q: "Konfigurasi elektron subkulit untuk unsur Skandium (Z = 21) adalah...", a: ["[Ar] 4s² 3d¹", "[Ar] 4s¹ 3d²", "[Ar] 3d³", "[Ar] 4s² 4p¹"], ans: 0 },
+        { id: "1.7", diff: "Sulit", q: "Pengecualian kestabilan subkulit d (setengah penuh) pada Kromium (Z = 24) menghasilkan konfigurasi...", a: ["[Ar] 4s¹ 3d⁵", "[Ar] 4s² 3d⁴", "[Ar] 4s⁰ 3d⁶", "[Ar] 3d⁶"], ans: 0 },
+        { id: "1.8", diff: "Sulit", q: "Pengecualian kestabilan subkulit d (penuh) pada Tembaga (Z = 29) menghasilkan konfigurasi...", a: ["[Ar] 4s¹ 3d¹⁰", "[Ar] 4s² 3d⁹", "[Ar] 4s⁰ 3d¹¹", "[Ar] 3d¹⁰"], ans: 0 },
+        { id: "1.9", diff: "Sangat Sulit", q: "Konfigurasi elektron Aufbau untuk kation Fe³⁺ (Z = 26) adalah...", a: ["[Ar] 3d⁵", "[Ar] 4s² 3d³", "[Ar] 4s¹ 3d⁴", "[Ar] 4s² 3d⁵"], ans: 0 },
+        { id: "1.10", diff: "HOTS / Ekstrem", q: "Konfigurasi elektron Aufbau untuk ion Cu⁺ (Z = 29) adalah...", a: ["[Ar] 3d¹⁰", "[Ar] 4s¹ 3d⁹", "[Ar] 4s² 3d⁸", "[Ar] 3d⁹ 4s¹"], ans: 0 }
+      ],
+
+      // MODUL 2: MENENTUKAN GOLONGAN
+      2: [
+        { id: "2.1", diff: "Sangat Mudah", q: "Unsur dengan konfigurasi terluar 2s¹ berada pada Golongan...", a: ["IA", "IIA", "IB", "VIIIA"], ans: 0 },
+        { id: "2.2", diff: "Mudah", q: "Unsur Magnesium (Z = 12) memiliki konfigurasi terluar 3s². Terletak pada Golongan...", a: ["IIA", "IA", "IIB", "IVA"], ans: 0 },
+        { id: "2.3", diff: "Mudah", q: "Unsur dengan konfigurasi [Ne] 3s² 3p⁵ berada pada Golongan...", a: ["VIIA", "VA", "VIIB", "VIA"], ans: 0 },
+        { id: "2.4", diff: "Sedang", q: "Konfigurasi elektron valensi 4s² 4p³ menunjukkan unsur tersebut berada pada Golongan...", a: ["VA", "VB", "IIIA", "VIA"], ans: 0 },
+        { id: "2.5", diff: "Sedang", q: "Unsur Kr (Z = 36) memiliki konfigurasi [Ar] 4s² 3d¹⁰ 4p⁶. Unsur ini berada pada Golongan...", a: ["VIIIA", "VIIIB", "IIB", "IVA"], ans: 0 },
+        { id: "2.6", diff: "Cukup Sulit", q: "Unsur dengan elektron valensi 4s² 3d³ terletak pada Golongan...", a: ["VB", "VA", "IIIB", "VIB"], ans: 0 },
+        { id: "2.7", diff: "Sulit", q: "Unsur Besi (Fe, Z = 26) memiliki konfigurasi terluar 4s² 3d⁶. Terletak pada Golongan...", a: ["VIIIB", "VIB", "VIIB", "IIB"], ans: 0 },
+        { id: "2.8", diff: "Sulit", q: "Unsur Seng (Zn, Z = 30) memiliki konfigurasi [Ar] 4s² 3d¹⁰. Terletak pada Golongan...", a: ["IIB", "IIA", "VIIIB", "IB"], ans: 0 },
+        { id: "2.9", diff: "Sangat Sulit", q: "Suatu ion X²⁻ memiliki konfigurasi [Ne] 3s² 3p⁶. Unsur netral X berada pada Golongan...", a: ["VIA", "VIIA", "VIIIA", "IVB"], ans: 0 },
+        { id: "2.10", diff: "HOTS / Ekstrem", q: "Unsur dengan konfigurasi [Xe] 6s² 4f¹⁴ 5d¹⁰ 6p² berada pada Golongan...", a: ["IVA", "IVB", "IIIA", "VIB"], ans: 0 }
+      ],
+
+      // MODUL 3: MENENTUKAN PERIODE
+      3: [
+        { id: "3.1", diff: "Sangat Mudah", q: "Unsur Hidrogen (1s¹) berada pada Periode...", a: ["1", "2", "3", "4"], ans: 0 },
+        { id: "3.2", diff: "Mudah", q: "Unsur dengan konfigurasi 1s² 2s² 2p⁴ terletak pada Periode...", a: ["2", "1", "3", "4"], ans: 0 },
+        { id: "3.3", diff: "Mudah", q: "Unsur Natrium (Z = 11) dengan konfigurasi [Ne] 3s¹ terletak pada Periode...", a: ["3", "2", "1", "4"], ans: 0 },
+        { id: "3.4", diff: "Sedang", q: "Unsur Kalsium (Z = 20) memiliki konfigurasi [Ar] 4s². Terletak pada Periode...", a: ["4", "3", "2", "5"], ans: 0 },
+        { id: "3.5", diff: "Sedang", q: "Unsur dengan konfigurasi [Ar] 4s² 3d⁵ memiliki jumlah kulit utama terbanyak 4. Periode unsur ini adalah...", a: ["4", "3", "5", "7"], ans: 0 },
+        { id: "3.6", diff: "Cukup Sulit", q: "Unsur Gallium (Z = 31) memiliki konfigurasi [Ar] 4s² 3d¹⁰ 4p¹. Terletak pada Periode...", a: ["4", "3", "5", "1"], ans: 0 },
+        { id: "3.7", diff: "Sulit", q: "Unsur Rubidium (Z = 37) memiliki konfigurasi [Kr] 5s¹. Terletak pada Periode...", a: ["5", "4", "6", "3"], ans: 0 },
+        { id: "3.8", diff: "Sulit", q: "Unsur Timbal / Pb (Z = 82) memiliki konfigurasi [Xe] 6s² 4f¹⁴ 5d¹⁰ 6p². Terletak pada Periode...", a: ["6", "5", "4", "7"], ans: 0 },
+        { id: "3.9", diff: "Sangat Sulit", q: "Ion Y³⁺ memiliki konfigurasi [Ar] 3d³. Maka unsur netral Y berada pada Periode...", a: ["4", "3", "5", "2"], ans: 0 },
+        { id: "3.10", diff: "HOTS / Ekstrem", q: "Unsur Uranium (Z = 92) memiliki konfigurasi [Rn] 7s² 5f⁴ 6d¹. Terletak pada Periode...", a: ["7", "6", "5", "8"], ans: 0 }
+      ],
+
+      // MODUL 4: MENENTUKAN NAMA UNSUR
+      4: [
+        { id: "4.1", diff: "Sangat Mudah", q: "Unsur dengan konfigurasi 1s¹ adalah...", a: ["Hidrogen (H)", "Helium (He)", "Litium (Li)", "Barium (Ba)"], ans: 0 },
+        { id: "4.2", diff: "Mudah", q: "Unsur dengan konfigurasi [He] 2s² 2p⁴ (Z = 8) adalah...", a: ["Oksigen (O)", "Nitrogen (N)", "Fluorin (F)", "Karbon (C)"], ans: 0 },
+        { id: "4.3", diff: "Mudah", q: "Unsur dengan konfigurasi [Ne] 3s² 3p⁵ (Z = 17) adalah...", a: ["Klorin (Cl)", "Sulfur (S)", "Argon (Ar)", "Fosfor (P)"], ans: 0 },
+        { id: "4.4", diff: "Sedang", q: "Unsur Gas Mulia yang memiliki konfigurasi [Ne] 3s² 3p⁶ adalah...", a: ["Argon (Ar)", "Kripton (Kr)", "Neon (Ne)", "Xenon (Xe)"], ans: 0 },
+        { id: "4.5", diff: "Sedang", q: "Unsur logam alkali tanah pada Periode 4 dengan konfigurasi [Ar] 4s² adalah...", a: ["Kalsium (Ca)", "Kalium (K)", "Skandium (Sc)", "Magnesium (Mg)"], ans: 0 },
+        { id: "4.6", diff: "Cukup Sulit", q: "Unsur transisi dengan konfigurasi [Ar] 4s² 3d⁶ adalah...", a: ["Besi / Iron (Fe)", "Kromium (Cr)", "Mangan (Mn)", "Nikel (Ni)"], ans: 0 },
+        { id: "4.7", diff: "Sulit", q: "Unsur dengan konfigurasi khusus [Ar] 4s¹ 3d¹⁰ adalah...", a: ["Tembaga / Copper (Cu)", "Seng / Zinc (Zn)", "Perak / Silver (Ag)", "Emas / Gold (Au)"], ans: 0 },
+        { id: "4.8", diff: "Sulit", q: "Unsur dengan konfigurasi [Kr] 5s² adalah...", a: ["Stronsium (Sr)", "Rubidium (Rb)", "Ytrium (Y)", "Barium (Ba)"], ans: 0 },
+        { id: "4.9", diff: "Sangat Sulit", q: "Kation M²⁺ dengan konfigurasi [Ar] 3d⁸ berasal dari unsur netral...", a: ["Nikel (Ni)", "Kobal (Co)", "Tembaga (Cu)", "Besi (Fe)"], ans: 0 },
+        { id: "4.10", diff: "HOTS / Ekstrem", q: "Unsur dengan konfigurasi [Rn] 7s² 5f¹⁴ 6d¹⁰ 7p⁶ (Z = 118) dinamakan...", a: ["Oganesson (Og)", "Tennessine (Ts)", "Moscovium (Mc)", "Flerovium (Fl)"], ans: 0 }
+      ],
+
+      // MODUL 5: MENENTUKAN NOMOR ATOM
+      5: [
+        { id: "5.1", diff: "Sangat Mudah", q: "Atom yang memiliki konfigurasi 1s² 2s¹ memiliki Nomor Atom...", a: ["3", "2", "4", "5"], ans: 0 },
+        { id: "5.2", diff: "Mudah", q: "Nomor atom dari unsur dengan konfigurasi 1s² 2s² 2p⁵ adalah...", a: ["9", "7", "8", "10"], ans: 0 },
+        { id: "5.3", diff: "Mudah", q: "Nomor atom dari unsur dengan konfigurasi [Ne] 3s² 3p³ adalah...", a: ["15", "13", "14", "16"], ans: 0 },
+        { id: "5.4", diff: "Sedang", q: "Suatu unsur terletak pada Periode 3 Golongan VIA. Nomor atomnya adalah...", a: ["16", "14", "18", "34"], ans: 0 },
+        { id: "5.5", diff: "Sedang", q: "Nomor atom unsur yang memiliki konfigurasi [Ar] 4s² 3d² adalah...", a: ["22", "20", "21", "24"], ans: 0 },
+        { id: "5.6", diff: "Cukup Sulit", q: "Unsur transisi memiliki konfigurasi [Ar] 4s¹ 3d⁵. Nomor atom unsur ini adalah...", a: ["24", "25", "23", "26"], ans: 0 },
+        { id: "5.7", diff: "Sulit", q: "Nomor atom unsur yang terletak di Periode 4, Golongan IIB adalah...", a: ["30", "28", "29", "32"], ans: 0 },
+        { id: "5.8", diff: "Sulit", q: "Suatu ion A²⁻ memiliki konfigurasi [Ar] 4s² 3d¹⁰ 4p⁶. Nomor atom unsur A netral adalah...", a: ["34", "36", "38", "32"], ans: 0 },
+        { id: "5.9", diff: "Sangat Sulit", q: "Ion X³⁺ memiliki konfigurasi [Ar] 3d⁵. Nomor atom unsur X netral adalah...", a: ["26", "23", "25", "28"], ans: 0 },
+        { id: "5.10", diff: "HOTS / Ekstrem", q: "Unsur dengan konfigurasi terluar [Kr] 5s¹ 4d⁵ memiliki Nomor Atom...", a: ["42", "41", "43", "44"], ans: 0 }
+      ]
+    };
+
+    // ============================================================
+    // 3. STATE & VARIABEL GAME
+    // ============================================================
+    let selectedCat = null;
+    let selectedQIdx = 0;
+    let playerName = "";
+    let questionRef = null;
+
+    // ============================================================
+    // 4. LOGIKA INTERAKSI TAMPILAN (UI)
+    // ============================================================
+    function selectCategory(catId) {
+      selectedCat = catId;
+      document.getElementById('name-modal').classList.add('active');
+      document.getElementById('player-name-input').focus();
+    }
+
+    function closeNameModal() {
+      document.getElementById('name-modal').classList.remove('active');
+    }
+
+    function confirmStartQuiz() {
+      const input = document.getElementById('player-name-input').value.trim();
+      if (!input) {
+        alert("Harap masukkan nama Anda terlebih dahulu!");
+        return;
+      }
+      playerName = input;
+      closeNameModal();
+
+      // Secara default mulai dari soal pertama (X.1) di kategori tsb
+      selectedQIdx = 0;
+      
+      document.getElementById('dashboard-screen').classList.remove('active');
+      document.getElementById('quiz-screen').classList.add('active');
+      document.getElementById('player-display-tag').innerText = `Pemain Aktif: ${playerName}`;
+
+      loadQuestionAndListen(selectedCat, selectedQIdx);
+    }
+
+    // ============================================================
+    // 5. LOGIKA REAL-TIME MULTIPLAYER (FIREBASE)
+    // ============================================================
+    function loadQuestionAndListen(cat, idx) {
+      const qData = questionDatabase[cat][idx];
+      
+      // Matikan listener lama jika ada
+      if (questionRef) {
+        questionRef.off();
+      }
+
+      // Update Tampilan Soal
+      document.getElementById('question-id-badge').innerText = `Soal ${qData.id}`;
+      document.getElementById('difficulty-badge').innerText = qData.diff;
+      document.getElementById('question-text').innerText = qData.q;
+      document.getElementById('feedback-box').style.display = 'none';
+
+      // Render Pilihan Jawaban
+      const optsContainer = document.getElementById('options-container');
+      optsContainer.innerHTML = '';
+
+      qData.a.forEach((optText, optIdx) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.innerText = `${String.fromCharCode(65 + optIdx)}. ${optText}`;
+        btn.onclick = () => handleAnswerSubmit(optIdx, qData.ans);
+        optsContainer.appendChild(btn);
+      });
+
+      // KEY MULTIPLAYER: Kunci path database Firebase (misal: "soal_locks/1_1")
+      const questionKey = `${cat}_${idx + 1}`;
+      questionRef = database.ref(`soal_locks/${questionKey}`);
+
+      // Pasang Listener Real-time
+      questionRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.isSolved) {
+          // Jika soal diselesaikan orang lain (bukan kita)
+          if (data.solvedBy !== playerName) {
+            alert(`⚠️ Soal ${qData.id} telah dijawab BENAR lebih cepat oleh "${data.solvedBy}"!\n\nAnda akan dikembalikan ke Dashboard Utama.`);
+            returnToDashboard();
+          }
+        }
+      });
+    }
+
+    function handleAnswerSubmit(chosenIdx, correctIdx) {
+      const buttons = document.querySelectorAll('.options .btn');
+      const feedback = document.getElementById('feedback-box');
+
+      if (chosenIdx === correctIdx) {
+        // --- JAWABAN BENAR ---
+        buttons[chosenIdx].classList.add('correct');
+        buttons.forEach(b => b.disabled = true);
+
+        const qData = questionDatabase[selectedCat][selectedQIdx];
+        const questionKey = `${selectedCat}_${selectedQIdx + 1}`;
+
+        // Kunci soal di Firebase
+        database.ref(`soal_locks/${questionKey}`).set({
+          isSolved: true,
+          solvedBy: playerName,
+          timestamp: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+          alert(`🎉 SELAMAT! Anda berhasil menjawab Soal ${qData.id} dengan BENAR!`);
+          
+          // Lanjut ke soal berikutnya di kategori yang sama jika ada
+          if (selectedQIdx + 1 < questionDatabase[selectedCat].length) {
+            selectedQIdx++;
+            loadQuestionAndListen(selectedCat, selectedQIdx);
+          } else {
+            alert("🏆 Luar biasa! Anda telah menyelesaikan seluruh soal di kategori ini!");
+            returnToDashboard();
+          }
+        });
+
+      } else {
+        // --- JAWABAN SALAH ---
+        // Siswa masih bisa mencoba lagi / menjawab soal yang sama
+        buttons[chosenIdx].classList.add('wrong');
+        feedback.innerText = "❌ Jawaban Anda belum tepat. Silakan coba pilihan lainnya!";
+        feedback.className = "feedback wrong";
+        feedback.style.display = 'block';
+      }
+    }
+
+    function returnToDashboard() {
+      if (questionRef) {
+        questionRef.off();
+      }
+      document.getElementById('quiz-screen').classList.remove('active');
+      document.getElementById('dashboard-screen').classList.add('active');
+    }
+  </script>
+</body>
+</html>
